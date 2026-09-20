@@ -11,6 +11,19 @@ from intelligence import detect_scam, extract_intelligence
 from lifecycle import ScamPhase
 from scoring import compute_risk_score
 from schemas import EmailAnalysisRequest, EmailAnalysisResponse, EmailIndicator
+from typing import Optional as _Optional
+
+
+def _prepare_raw_eml(raw_eml: _Optional[object]) -> _Optional[bytes]:
+    """Safely convert raw_eml (str, bytes, or None) to bytes."""
+    if raw_eml is None:
+        return None
+    if isinstance(raw_eml, bytes):
+        return raw_eml
+    if isinstance(raw_eml, str):
+        return raw_eml.encode("utf-8", errors="replace")
+    return None
+
 
 
 URGENCY_WORDS = {
@@ -102,24 +115,34 @@ def analyze_email(payload: EmailAnalysisRequest) -> EmailAnalysisResponse:
     message_text = payload.message_text or extract_message_body(payload.raw_eml)
     intelligence = extract_intelligence(combined_text) if detection.is_scam else extract_intelligence(message_text)
     headers = analyze_headers(payload.raw_headers, payload.raw_eml)
-    auth = headers.authentication
+    # Build a compatible auth view from the new HeaderAnalysisResult
+    from schemas import AuthenticationResults
+    auth = AuthenticationResults(
+        spf=headers.spf.status,
+        dkim=headers.dkim.status,
+        dmarc=headers.dmarc.status,
+        spf_domain=headers.spf.domain,
+        dkim_domain=headers.dkim.domain,
+        aligned=(headers.spf.status == "pass" or headers.dkim.status == "pass"),
+    )
     auth.spf = payload.spf_result or auth.spf
     auth.dkim = payload.dkim_result or auth.dkim
     auth.dmarc = payload.dmarc_result or auth.dmarc
     observed_auth_anomalies = authentication_anomalies(apply_observed_results(
         auth,
-        from_domain=headers.from_domain,
+        from_domain=headers.relay_chain[0].from_host if headers.relay_chain else None,
         spf=payload.spf_result,
         dkim=payload.dkim_result,
         dmarc=payload.dmarc_result,
     ))
+    combined_anomalies = list(headers.anomalies)
     for anomaly in observed_auth_anomalies:
-        if anomaly not in headers.anomalies:
-            headers.anomalies.append(anomaly)
-    origin = resolve_origin(headers.relay_hops, payload.sender_ip)
-    domain_intel = analyze_domain(headers.from_domain or payload.from_email)
-    auth_failure = any(value in {"fail", "softfail", "permerror"} for value in (auth.spf, auth.dkim, auth.dmarc))
-    alignment_failure = any(item.endswith("alignment_failure") for item in headers.anomalies)
+        if anomaly not in combined_anomalies:
+            combined_anomalies.append(anomaly)
+    origin = resolve_origin([], payload.sender_ip)
+    domain_intel = analyze_domain(headers.origin_ip or payload.from_email)
+    auth_failure = any(v in {"fail", "softfail", "permerror"} for v in (headers.spf.status, headers.dkim.status, headers.dmarc.status))
+    alignment_failure = any(item.endswith("alignment_failure") for item in combined_anomalies)
     brand_spoof = assess_brand_spoof(payload.from_name, domain_intel, auth_failure, alignment_failure)
 
     fingerprint = {
@@ -147,7 +170,7 @@ def analyze_email(payload: EmailAnalysisRequest) -> EmailAnalysisResponse:
 
     indicators: List[EmailIndicator] = []
     reasons = _build_reasons(payload, intelligence, indicators)
-    if headers.anomalies:
+    if combined_anomalies:
         reasons.append("Email header anomalies detected")
     if brand_spoof.suspected:
         reasons.append("Brand lookalike domain with authentication concerns detected")

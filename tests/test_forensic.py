@@ -12,6 +12,8 @@ from forensic.report_models import ForensicReportContext
 from config import config
 from main import app
 
+import os
+os.environ["FORENSIC_READ_API_KEY"] = config.api.api_key
 
 client = TestClient(app, headers={"x-api-key": config.api.api_key})
 

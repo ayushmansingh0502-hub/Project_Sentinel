@@ -1,21 +1,21 @@
 {
-  "generated_at": "2026-07-04T07:58:27Z",
+  "generated_at": "2026-09-20T11:42:13Z",
   "scenario_count": 4,
   "detection_rate": 1.0,
   "fp_rate": 0.0,
-  "mttd_seconds": 0.5223,
-  "mttr_seconds": 0.7291,
+  "mttd_seconds": 0.5602,
+  "mttr_seconds": 0.6714,
   "results": [
     {
       "scenario_id": "phishing-mesh",
       "name": "Phishing mesh across IP, user, and domain",
       "expected_positive": true,
       "incident_count": 3,
-      "audit_count": 1,
+      "audit_count": 0,
       "detected": true,
       "false_positive": false,
-      "mttd_seconds": 0.6208,
-      "mttr_seconds": 1.0954,
+      "mttd_seconds": 0.659,
+      "mttr_seconds": 1.0374,
       "responses": [
         {
           "kind": "telemetry",
@@ -41,64 +41,7 @@
         {
           "kind": "action",
           "response": {
-            "incident_id": 1,
-            "action": "block_ip",
-            "status": "ok",
-            "result": "simulated_success",
-            "playbook_id": "containment.core",
-            "blast_radius": 56.27,
-            "escalation_required": false,
-            "validated_params": {
-              "target_ip": "10.20.1.15",
-              "duration_minutes": 90
-            },
-            "incident": {
-              "entities": [
-                {
-                  "type": "ip",
-                  "id": "10.20.1.15"
-                }
-              ],
-              "score": 87.0,
-              "evidence": [
-                {
-                  "type": "phishing_link",
-                  "text": "http://verify-wallet-support.com",
-                  "source": "sensor"
-                }
-              ],
-              "mitre": [
-                "T1566"
-              ],
-              "status": "mitigated",
-              "correlation_type": "single_entity",
-              "created_at": 1783151902.8847082,
-              "predicted_next_steps": [
-                "block_ip",
-                "snapshot"
-              ],
-              "id": 1,
-              "last_action": "block_ip",
-              "last_action_at": 1783151904.0877433,
-              "last_action_by": "demo_runner",
-              "blast_radius": 56.27,
-              "mitigated_by": "demo_runner",
-              "mitigated_at": 1783151904.0877433
-            },
-            "entry": {
-              "ts": 1783151904.0877433,
-              "actor": "demo_runner",
-              "action": "block_ip",
-              "params": {
-                "target_ip": "10.20.1.15",
-                "duration_minutes": 90
-              },
-              "playbook_id": "containment.core",
-              "simulation_only": true,
-              "blast_radius": 56.27,
-              "escalation_required": false,
-              "result": "simulated_success"
-            }
+            "detail": "Operator authentication is not configured."
           }
         }
       ]
@@ -108,11 +51,11 @@
       "name": "Credential pressure with session revocation",
       "expected_positive": true,
       "incident_count": 2,
-      "audit_count": 1,
+      "audit_count": 0,
       "detected": true,
       "false_positive": false,
-      "mttd_seconds": 0.4694,
-      "mttr_seconds": 0.5347,
+      "mttd_seconds": 0.4774,
+      "mttr_seconds": 0.4873,
       "responses": [
         {
           "kind": "telemetry",
@@ -131,70 +74,7 @@
         {
           "kind": "action",
           "response": {
-            "incident_id": 1,
-            "action": "revoke_session",
-            "status": "ok",
-            "result": "simulated_success",
-            "playbook_id": "identity.response",
-            "blast_radius": 56.1,
-            "escalation_required": false,
-            "validated_params": {
-              "session_id": "sess-445",
-              "notify_user": true
-            },
-            "incident": {
-              "entities": [
-                {
-                  "type": "user",
-                  "id": "alice@corp.local"
-                }
-              ],
-              "score": 98.0,
-              "evidence": [
-                {
-                  "type": "credential",
-                  "text": "password reuse across login prompts",
-                  "source": "idp"
-                },
-                {
-                  "type": "session",
-                  "text": "impossible travel active session",
-                  "source": "idp"
-                }
-              ],
-              "mitre": [
-                "T1556",
-                "T1592"
-              ],
-              "status": "mitigated",
-              "correlation_type": "single_entity",
-              "created_at": 1783151904.4200485,
-              "predicted_next_steps": [
-                "revoke_session",
-                "reset_credentials"
-              ],
-              "id": 1,
-              "last_action": "revoke_session",
-              "last_action_at": 1783151905.0919583,
-              "last_action_by": "demo_runner",
-              "blast_radius": 56.1,
-              "mitigated_by": "demo_runner",
-              "mitigated_at": 1783151905.0919583
-            },
-            "entry": {
-              "ts": 1783151905.0919583,
-              "actor": "demo_runner",
-              "action": "revoke_session",
-              "params": {
-                "session_id": "sess-445",
-                "notify_user": true
-              },
-              "playbook_id": "identity.response",
-              "simulation_only": true,
-              "blast_radius": 56.1,
-              "escalation_required": false,
-              "result": "simulated_success"
-            }
+            "detail": "Operator authentication is not configured."
           }
         }
       ]
@@ -204,11 +84,11 @@
       "name": "High-risk payment fraud escalation",
       "expected_positive": true,
       "incident_count": 2,
-      "audit_count": 1,
+      "audit_count": 0,
       "detected": true,
       "false_positive": false,
-      "mttd_seconds": 0.4768,
-      "mttr_seconds": 0.5571,
+      "mttd_seconds": 0.5441,
+      "mttr_seconds": 0.4895,
       "responses": [
         {
           "kind": "telemetry",
@@ -227,65 +107,7 @@
         {
           "kind": "action",
           "response": {
-            "incident_id": 1,
-            "action": "snapshot",
-            "status": "ok",
-            "result": "simulated_success",
-            "playbook_id": "containment.core",
-            "blast_radius": 37.1,
-            "escalation_required": false,
-            "validated_params": {
-              "artifact_type": "disk"
-            },
-            "incident": {
-              "entities": [
-                {
-                  "type": "conversation",
-                  "id": "conv-demo-1"
-                }
-              ],
-              "score": 100.0,
-              "evidence": [
-                {
-                  "type": "upi_id",
-                  "text": "fraudster@okaxis",
-                  "source": "honeypot"
-                },
-                {
-                  "type": "bank_account",
-                  "text": "998877665544",
-                  "source": "honeypot"
-                }
-              ],
-              "mitre": [
-                "T1548"
-              ],
-              "status": "open",
-              "correlation_type": "single_entity",
-              "created_at": 1783151905.4390984,
-              "predicted_next_steps": [
-                "snapshot",
-                "disable_user"
-              ],
-              "id": 1,
-              "last_action": "snapshot",
-              "last_action_at": 1783151906.1260874,
-              "last_action_by": "demo_runner",
-              "blast_radius": 37.1
-            },
-            "entry": {
-              "ts": 1783151906.1260874,
-              "actor": "demo_runner",
-              "action": "snapshot",
-              "params": {
-                "artifact_type": "disk"
-              },
-              "playbook_id": "containment.core",
-              "simulation_only": true,
-              "blast_radius": 37.1,
-              "escalation_required": false,
-              "result": "simulated_success"
-            }
+            "detail": "Operator authentication is not configured."
           }
         }
       ]

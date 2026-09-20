@@ -217,3 +217,45 @@ def _generate_rule_based_reply(
         "I'm trying to do this correctly. "
         "Please guide me step by step."
     )
+
+
+# --- Security additions from master ---
+import threading as _threading
+import time as _time
+import re as _re
+
+_INJECTION_PATTERNS = _re.compile(
+    r"ignore\s+(all\s+)?previous\s+instructions?|"
+    r"you\s+are\s+now\s+a|"
+    r"disregard\s+your\s+(system\s+)?prompt|"
+    r"print\s+your\s+system\s+prompt|"
+    r"reveal\s+(your\s+)?(api\s+)?key",
+    _re.IGNORECASE
+)
+_llm_lock = _threading.Lock()
+_llm_calls_this_minute = 0
+_llm_last_reset = 0.0
+_LLM_MAX_RPM = 15
+
+
+def _llm_allowed() -> bool:
+    global _llm_calls_this_minute, _llm_last_reset
+    with _llm_lock:
+        now = _time.time()
+        if now - _llm_last_reset > 60:
+            _llm_calls_this_minute = 0
+            _llm_last_reset = now
+        if _llm_calls_this_minute >= _LLM_MAX_RPM:
+            return False
+        _llm_calls_this_minute += 1
+        return True
+
+
+def _sanitize_for_prompt(text: str, max_len: int = 500) -> str:
+    """Strip injection attempts and cap length before embedding in prompt."""
+    if not text:
+        return ""
+    text = text[:max_len]
+    if _INJECTION_PATTERNS.search(text):
+        return "[message removed - policy violation]"
+    return text

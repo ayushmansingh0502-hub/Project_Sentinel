@@ -38,8 +38,8 @@ class EmailAnalysisRequest(StrictRequestModel):
     subject: Optional[str] = Field(default=None, max_length=512)
     message_text: Optional[str] = Field(default=None, max_length=20000)
     links: List[str] = Field(default_factory=list, max_length=100)
-    raw_headers: Optional[str] = Field(default=None, max_length=100000)
-    raw_eml: Optional[str] = Field(default=None, max_length=2000000)
+    raw_headers: Optional[str] = Field(default=None, max_length=65_536)
+    raw_eml: Optional[str] = Field(default=None, max_length=2_097_152)
     sender_ip: Optional[str] = Field(default=None, max_length=64)
     spf_result: Optional[str] = Field(default=None, max_length=32)
     dkim_result: Optional[str] = Field(default=None, max_length=32)
@@ -62,12 +62,9 @@ class AuthenticationResults(BaseModel):
 
 
 class RelayHop(BaseModel):
-    position: int
-    raw: str
-    from_host: Optional[str] = None
-    by_host: Optional[str] = None
-    protocol: Optional[str] = None
-    timestamp: Optional[str] = None
+    # Legacy fields (used by old header_analyzer)
+    position: Optional[int] = None
+    raw: Optional[str] = None
     ip_addresses: List[str] = Field(default_factory=list)
     country: Optional[str] = None
     city: Optional[str] = None
@@ -75,6 +72,14 @@ class RelayHop(BaseModel):
     longitude: Optional[float] = None
     is_private: bool = False
     is_trusted_relay: bool = False
+    # New fields (used by new header_analyzer)
+    hop_index: int = 0
+    from_host: Optional[str] = None
+    by_host: Optional[str] = None
+    with_protocol: Optional[str] = None
+    protocol: Optional[str] = None
+    timestamp: Optional[Any] = None
+    delay_seconds: Optional[float] = None
 
 
 class HeaderAnalysis(BaseModel):
@@ -126,6 +131,27 @@ class EmailIndicator(BaseModel):
     value: str
 
 
+# --- New models for advanced email header analysis ---
+
+class AuthProtocolResult(BaseModel):
+    """Result of a single email authentication check (SPF, DKIM, or DMARC)."""
+    status: str  # pass | fail | softfail | none | temperror | permerror
+    domain: Optional[str] = None
+    details: Optional[str] = None
+
+
+class HeaderAnalysisResult(BaseModel):
+    """Full result of email header forensic analysis."""
+    relay_chain: List[RelayHop] = Field(default_factory=list)
+    origin_ip: Optional[str] = None
+    spf: AuthProtocolResult = Field(default_factory=lambda: AuthProtocolResult(status='none'))
+    dkim: AuthProtocolResult = Field(default_factory=lambda: AuthProtocolResult(status='none'))
+    dmarc: AuthProtocolResult = Field(default_factory=lambda: AuthProtocolResult(status='none'))
+    anomalies: List[str] = Field(default_factory=list)
+    is_spoofed: bool = False
+    spoofing_risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
 class EmailAnalysisResponse(BaseModel):
     is_scam: bool
     confidence: float
@@ -133,7 +159,7 @@ class EmailAnalysisResponse(BaseModel):
     scam_type: Optional[str] = None
     reasons: List[str] = Field(default_factory=list)
     extracted_intelligence: Optional[ExtractedIntelligence] = None
-    header_analysis: Optional[HeaderAnalysis] = None
+    header_analysis: Optional[HeaderAnalysisResult] = None
     origin_trace: Optional[OriginTrace] = None
     domain_intel: Optional[DomainIntelResult] = None
     brand_spoof: Optional[BrandSpoofResult] = None
@@ -149,7 +175,7 @@ class Evidence(StrictRequestModel):
 class TelemetryEvent(StrictRequestModel):
     """Telemetry event for swarm pheromone ingestion."""
     entity_type: str = Field(description="Entity type (e.g., 'ip', 'user', 'host', 'asset')", min_length=1, max_length=64)
-    entity_id: str = Field(description="Unique identifier for the entity", min_length=1, max_length=512)
+    entity_id: str = Field(description="Unique identifier for the entity", min_length=1, max_length=512, pattern=r"^[a-zA-Z0-9.\-_@:]+$")
     score: float = Field(default=10, ge=0, le=100, description="Risk score 0-100")
     evidence: List[Evidence] = Field(default_factory=list, description="List of evidence items", max_length=100)
     ts: Optional[float] = Field(default=None, description="Unix timestamp")
@@ -194,7 +220,7 @@ class ActionRequest(StrictRequestModel):
 
 class ContainmentActionRequest(StrictRequestModel):
     action: str = Field(min_length=1, max_length=128)
-    entity_id: str = Field(min_length=1, max_length=512)
+    entity_id: str = Field(min_length=1, max_length=512, pattern=r"^[a-zA-Z0-9.\-_@:]+$")
     entity_type: str = Field(default="ip", min_length=1, max_length=64)
     actor: str = Field(default="dashboard", min_length=1, max_length=128)
     reason: str = Field(default="", max_length=1024)
@@ -313,3 +339,5 @@ class WSMessage(BaseModel):
     msg_type: str = Field(description="graph_update, incident, ant_activity, swarm_status, alert")
     data: Dict[str, Any] = Field(default_factory=dict)
     timestamp: Optional[float] = None
+
+
