@@ -428,17 +428,34 @@ async function analyzeEmailFromDashboard(event) {
 //  WEBSOCKET
 // ═══════════════════════════════════════
 
-function connectWS() {
+async function connectWS() {
   if (!API_KEY) return;
   if (ws && ws.readyState === WebSocket.OPEN) return;
-  ws = new WebSocket(WS_URL);
-  ws.onopen = () => {
-    ws.send(JSON.stringify({ type: 'auth', api_key: API_KEY }));
-    if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
-  };
-  ws.onmessage = e => { try { route(JSON.parse(e.data)); } catch(err) { console.error(err); } };
-  ws.onclose = () => { setConn(false); if (API_KEY) schedReconn(); };
-  ws.onerror = () => setConn(false);
+  
+  try {
+    const res = await fetch(`${API}/ws-ticket`, {
+      method: 'POST',
+      headers: authHeaders()
+    });
+    if (!res.ok) {
+      if (res.status === 401 || res.status === 403) {
+        toast('Invalid API Key. Please check settings.', 'err');
+        showSettings();
+      }
+      return;
+    }
+    const { ticket } = await res.json();
+    ws = new WebSocket(`${WS_URL}?ticket=${ticket}`);
+    ws.onopen = () => {
+      if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
+    };
+    ws.onmessage = e => { try { route(JSON.parse(e.data)); } catch(err) { console.error(err); } };
+    ws.onclose = () => { setConn(false); if (API_KEY) schedReconn(); };
+    ws.onerror = () => setConn(false);
+  } catch (err) {
+    console.error('WS auth error:', err);
+    schedReconn();
+  }
 }
 
 function schedReconn() { if (reconnTimer) return; reconnTimer = setTimeout(() => { reconnTimer = null; connectWS(); }, 3000); }
