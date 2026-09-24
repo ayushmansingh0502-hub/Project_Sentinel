@@ -447,6 +447,8 @@ async function connectWS() {
     const { ticket } = await res.json();
     ws = new WebSocket(`${WS_URL}?ticket=${ticket}`);
     ws.onopen = () => {
+      setConn(true);
+      toast('Connected', 'ok');
       if (reconnTimer) { clearTimeout(reconnTimer); reconnTimer = null; }
     };
     ws.onmessage = e => { try { route(JSON.parse(e.data)); } catch(err) { console.error(err); } };

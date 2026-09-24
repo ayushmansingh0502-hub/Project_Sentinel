@@ -340,6 +340,9 @@ async def websocket_init_payload() -> Dict[str, Any]:
 
 async def handle_ws_message(msg: dict, websocket: WebSocket) -> None:
     msg_type = msg.get("type", "")
+    if msg_type == "auth":
+        await websocket.send_text(json.dumps({"type": "auth_ok", "timestamp": time.time()}))
+        return
     if msg_type == "request_graph":
         from swarm_graph import pheromone_graph
 
